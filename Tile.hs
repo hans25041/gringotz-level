@@ -1,9 +1,6 @@
 module Tile where
 
-data Coordinate = Point Int Int
-                | Rand
-                | None deriving (Eq, Show)
-
+data Point = Point Int Int deriving Show
 
 data Tile =   Wall
             | Space

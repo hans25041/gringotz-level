@@ -28,23 +28,19 @@ emptyP w h = Patch (Dimensions w h)
                   ++ [wall w]
 
 
-updateP :: (Tile -> Tile) -> Coordinate -> PR -> PR
+updateP :: (Tile -> Tile) -> Point -> PR -> PR
 updateP f c@(Point x y) p@(Patch dims rs) 
   | (not . validPoint p) c = p
   | otherwise = Patch dims $ update (updateR f x) y rs
-updateP _ Rand _ = error "Cannot call updateP on Rand"
-updateP _ None p = p
 
 
-validPoint :: PR -> Coordinate -> Bool
+validPoint :: PR -> Point -> Bool
 validPoint p@(Patch (Dimensions w h) _) c@(Point x y) =
   x > 0 && y > 0 && x < w-1 && y < h-1 && isSpaceP p c
-validPoint _ _ = False
 
 
-isSpaceP :: PR -> Coordinate -> Bool
+isSpaceP :: PR -> Point -> Bool
 isSpaceP (Patch _ rs) (Point x y) = isSpaceR (rs !! y) x
-isSpaceP _ _ = False
 
 
 maxXP :: PR -> Int
@@ -52,25 +48,27 @@ maxXP (Patch (Dimensions x _) _) = x - 2
 
 
 randUpdateP :: (Tile -> Tile) -> PR -> IO PR
-randUpdateP f p@(Patch (Dimensions w h) _)
-  | h <= 2 || w <= 2 = return p
-  | otherwise = do
-      c <- runRVar (choice $ tsP p Space) StdRandom
-      return $ updateP f c p
+randUpdateP f p = do
+  c <- randPoint p
+  return $ updateP f c p
 
 
-tsP :: PR -> Tile -> [Coordinate]
+randPoint :: PR -> IO Point
+randPoint p = runRVar (choice $ tsP p Space) StdRandom
+
+
+tsP :: PR -> Tile -> [Point]
 tsP (Patch _ rs) t = concat $ zipWith coords indices rSpaces
   where coords y = map (`Point` y)
         indices  = findIndices (const True) rSpaces
         rSpaces  = fmap (tsR t) rs
 
 
-usP :: PR -> Coordinate
+usP :: PR -> Point
 usP p = head $ tsP p UStairs
 
 
-dsP :: PR -> Coordinate
+dsP :: PR -> Point
 dsP p = head $ tsP p DStairs
 
 

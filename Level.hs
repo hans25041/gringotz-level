@@ -1,7 +1,8 @@
 module Level where
 
-import Control.Applicative
 import Control.Monad
+import Data.Random
+import Data.Random.Extras
 
 import Patch
 import Tile
@@ -11,48 +12,70 @@ data Level = Level Int PR
 instance Show Level where
   show (Level l p) = "Level " ++ show l ++ "\n" ++ show p
 
-data Vault = Vault (Int, Int) (Int, Int) (Int, Int) deriving Show
-type VaultTransformFunc = Vault -> Int -> Coordinate
+data Vault = Vault Point Dimensions Point deriving Show
+type VaultTransformFunc = Vault -> Int -> Point
 
 type L = PR
 
 
 nextL :: Maybe Level -> IO Level
-nextL Nothing = randL 1 None Rand
-nextL (Just (Level l p)) =
-  randL (l + 1) (head $ tsP p DStairs) Rand
+nextL Nothing = randL 1 Nothing Nothing
+nextL (Just (Level l p)) = do
+  d <- randPoint p
+  randL (l + 1) (Just $ dsP p) (Just d)
 
 
 prevL :: Level -> IO Level
-prevL (Level 1 p) = randL 1 None (usP p)
+prevL (Level 1 p) = randL 1 Nothing (Just $ usP p)
 prevL (Level l p)
   | l < 1     = error "Cannot fetch level less than 1."
-  | otherwise = randL l Rand (usP p)
+  | otherwise = do
+      u <- randPoint p
+      randL l (Just u) (Just $ usP p)
 
 
-randL :: Int -> Coordinate -> Coordinate -> IO Level
+randL :: Int -> Maybe Point -> Maybe Point -> IO Level
 randL i u d = runTransforms (emptyL i) transforms
   where transforms = [ setTile  u UStairs
                      , setTile  d DStairs
-                     , setTiles i Monster
-                     , setTiles i Gold
-                     , setTiles 8 Hole
+                     , randTiles i Monster
+                     , randTiles i Gold
+                     , randTiles 8 Hole
                      ]
 
 
+randVault :: Level -> IO Vault
+randVault (Level _ p@(Patch (Dimensions w h) _)) = do
+  o@(Point x y) <- randPoint p
+  w' <- runRVar (choice [3..(w-x)]) StdRandom
+  h' <- runRVar (choice [3..(h-y)]) StdRandom
+  dp <- placeDoor o (Dimensions w' h')
+  return $ Vault o (Dimensions w' h') dp
+
+  where placeDoor (Point x y) (Dimensions w' h') = do
+          let sr 
+                 | x < 3          = [x+w'-1] 
+                 | w-(x+w'-1) < 3 = [x]
+                 | otherwise      = [x,x+w'-1]
+          dx <- runRVar (choice sr) StdRandom
+          dy <- runRVar (choice [(y+1)..(y+h'-2)]) StdRandom
+          return $ Point dx dy
+
+
 addVault :: Level -> Vault -> IO Level
-addVault l (Vault (x, y) (w, h) (dx, dy)) = runTransforms l transformers
+addVault l (Vault (Point x y) (Dimensions w h) (Point dx dy)) =
+  runTransforms l transformers
   where transformers =
-          [ setTile   (Point dx dy) VDoor
-          , transform (Point x)          [x..(x+w)] Wall
-          , transform (Point $ x+w)      [x..(x+w)] Wall
-          , transform (flip Point y)     [y..(y+h)] Wall
-          , transform (flip Point $ y+h) [y..(y+h)] Wall
+          [ setTile   (Just $ Point dx dy) VDoor
+          , transform (Point x)            [y..(y+h-1)] Wall -- left
+          , transform (Point $ x+w-1)      [y..(y+h-1)] Wall -- right
+          , transform (flip Point y)       [x..(x+w-1)] Wall -- top
+          , transform (flip Point $ y+h-1) [x..(x+w-1)] Wall -- bottom
           ]
 
 
 v1 :: Vault
-v1 = Vault (5, 5) (5, 5) (5, 8)
+v1 = Vault (Point 2 4) (Dimensions 5 8) (Point 6 6)
 
 
 runTransforms :: Monad m => a -> [a -> m a] -> m a
@@ -62,10 +85,10 @@ runTransforms = foldM (flip ($))
 transformRow :: Level -> Int -> Tile -> IO Level
 transformRow l r t = transform (flip Point r) (xRangeL l) t l
 
-transform :: (Int -> Coordinate) -> [Int] -> Tile -> Level
+transform :: (Int -> Point) -> [Int] -> Tile -> Level
              -> IO Level
 transform f r t l = runTransforms l ts
-  where ps = map f r
+  where ps = map (Just . f) r
         ts = map (`setTile` t) ps
 
 
@@ -84,20 +107,20 @@ emptyL :: Int -> Level
 emptyL l = Level l (emptyP 50 20)
 
 
-setTiles :: Int -> Tile -> Level -> IO Level
-setTiles 0 _ l = return l
-setTiles i t l = setTile Rand t l >>= setTiles (i-1) t
+randTiles :: Int -> Tile -> Level -> IO Level
+randTiles 0 _ l = return l
+randTiles i t l@(Level _ p) = do
+  c <- randPoint p
+  l' <- setTile (Just c) t l 
+  randTiles (i-1) t l'
 
 
-setTile :: Coordinate -> Tile -> Level -> IO Level
+setTile :: Maybe Point -> Tile -> Level -> IO Level
 
-setTile c@(Point _ _) t (Level l p) =
+setTile (Just c) t (Level l p) =
   return $ Level l $ updateP (safeR t) c p
 
-setTile Rand t (Level l p) =
-  Level l <$> randUpdateP (safeR t) p
-
-setTile None _ l = return l
+setTile Nothing _ l = return l
 
 
 safeR :: Tile -> Tile -> Tile
