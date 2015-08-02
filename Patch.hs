@@ -21,11 +21,11 @@ instance Functor Patch where
   fmap f (Patch d l) = Patch d $ fmap f l
 
 
-emptyP :: Int -> Int -> PR
-emptyP w h = Patch (Dimensions w h)
-                   $ [wall w]
-                  ++ replicate (h-2) (emptyR w)
-                  ++ [wall w]
+emptyP :: Dimensions -> PR
+emptyP d@(Dimensions w h) =
+  Patch d $ [wall w]
+         ++ replicate (h-2) (emptyR w)
+         ++ [wall w]
 
 
 updateP :: (Tile -> Tile) -> Point -> PR -> PR
@@ -45,6 +45,10 @@ isSpaceP (Patch _ rs) (Point x y) = isSpaceR (rs !! y) x
 
 maxXP :: PR -> Int
 maxXP (Patch (Dimensions x _) _) = x - 2
+
+
+maxYP :: PR -> Int
+maxYP (Patch (Dimensions _ y) _) = y - 2
 
 
 randUpdateP :: (Tile -> Tile) -> PR -> IO PR
@@ -73,6 +77,6 @@ dsP p = head $ tsP p DStairs
 
 
 testP :: PR
-testP = emptyP 50 20
+testP = emptyP (Dimensions 50 20)
 
 

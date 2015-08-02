@@ -2,6 +2,7 @@ module Tile where
 
 data Point = Point Int Int deriving Show
 
+
 data Tile =   Wall
             | Space
             | Hole
