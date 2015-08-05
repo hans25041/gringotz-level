@@ -25,3 +25,14 @@ instance Show Tile where
   show VDoor   = "|"
 
 
+readTile :: Char -> Tile
+readTile '#' = Wall
+readTile '.' = Space
+readTile ' ' = Hole
+readTile 'g' = Gold
+readTile 'm' = Monster
+readTile '@' = Player
+readTile '>' = DStairs
+readTile '<' = UStairs
+readTile '|' = VDoor
+readTile _   = Space

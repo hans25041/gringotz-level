@@ -1,10 +1,13 @@
+module Maze where
+
 import Control.Monad
 import Control.Monad.ST
 import Data.Array
 import Data.Array.ST
 import Data.STRef
 import System.Random
- 
+
+
 rand :: Random a => (a, a) -> STRef s StdGen -> ST s a
 rand range gen = do
     (a, g) <- liftM (randomR range) $ readSTRef gen
@@ -48,8 +51,8 @@ maze width height gen = do
             (if y == 0    then [] else [(x,     y - 1)]) ++
             (if y == maxY then [] else [(x,     y + 1)])
  
-        maxX = width - 1
-        maxY = height - 1
+        maxX = (div width  2) - 1
+        maxY = (div height 2) - 1
  
         mazeArray = newArray ((0, 0), (maxX, maxY))
             :: Bool -> ST s (STArray s (Int, Int) Bool)

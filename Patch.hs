@@ -1,13 +1,18 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Patch where
 
+import Control.Applicative
+import Control.Monad.ST
+import Data.Array
 import Data.List
 import Data.Random
 import Data.Random.Extras
+import System.Random
 
 import Row
 import Tile
 import Utilities
+import Maze
 
 data Dimensions = Dimensions Int Int deriving Show
 data Patch a    = Patch Dimensions [a]
@@ -62,9 +67,9 @@ randPoint p = runRVar (choice $ tsP p Space) StdRandom
 
 
 tsP :: PR -> Tile -> [Point]
-tsP (Patch _ rs) t = concat $ zipWith coords indices rSpaces
+tsP (Patch _ rs) t = concat $ zipWith coords indexes rSpaces
   where coords y = map (`Point` y)
-        indices  = findIndices (const True) rSpaces
+        indexes  = findIndices (const True) rSpaces
         rSpaces  = fmap (tsR t) rs
 
 
@@ -78,5 +83,36 @@ dsP p = head $ tsP p DStairs
 
 testP :: PR
 testP = emptyP (Dimensions 50 20)
+
+
+mazeP :: Dimensions -> IO PR
+mazeP (Dimensions w h) = newStdGen >>= stToIO . maze w h >>= return . mazePatch
+
+
+mazePatch :: Maze -> PR
+mazePatch m = Patch dims $ topLine : (concat (map rowLine [0..maxY]))
+  where
+    topLine = Row $ replicate width Wall
+    rowLine y = [rowRLines y, rowBLines y]
+
+    rowRLines y = Row $ concat $
+      [Wall] : map rowSeg [0..maxX]
+      where rowSeg x = if walls ! (x,y) then [Space, Wall] else [Space, Space]
+            walls = rightWalls m
+
+
+    rowBLines y = Row $ concat $
+      (map rowSeg [0..maxX]) ++ [[Wall]]
+      where rowSeg x = if walls ! (x,y) then [Wall, Wall] else [Wall, Space]
+            walls = belowWalls m
+
+
+    dims = Dimensions width height
+
+    width  = (1+) $ (2*) $ maxX+1
+    height = (2*) $ maxY+1
+
+    maxX = fst $ snd $ bounds $ rightWalls m
+    maxY = snd $ snd $ bounds $ rightWalls m
 
 

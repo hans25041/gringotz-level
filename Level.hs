@@ -41,6 +41,19 @@ randL i u d = runTransforms (emptyL i) transforms
                      ]
 
 
+randMazeL :: Int -> IO Level
+randMazeL i = do
+  l@(Level _ p) <- mazeL i
+  u <- randPoint p
+  d <- randPoint p
+  runTransforms l (transforms (Just u) (Just d))
+  where transforms u d = [ setTile   u     UStairs
+                         , setTile   d     DStairs
+                         , randTiles (i*2) Monster
+                         , randTiles 20    Gold
+                         ]
+
+
 addVault :: Level -> Vault -> IO Level
 addVault l (Vault (Point x y) (Dimensions w h) (Point dx dy) g ms) =
   runTransforms l transformers
@@ -92,6 +105,10 @@ maxYL (Level _ p) = maxYP p
 
 l1 :: Level
 l1 = emptyL 1
+
+
+mazeL :: Int -> IO Level
+mazeL l = mazeP (Dimensions 49 19) >>= return . Level l
 
 
 emptyL :: Int -> Level
