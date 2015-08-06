@@ -30,13 +30,24 @@ library
                      , random-extras >= 0.19 && < 0.20
   default-language:    Haskell2010
 
-executable level-generator
+executable gringotz-level-generator
   hs-source-dirs:      app
   main-is:             Generator.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , aeson         >= 0.8  && < 0.9
                      , Gringotz
+  default-language:    Haskell2010
+
+executable gringotz-server
+  hs-source-dirs:      app
+  main-is:             Server.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , aeson         >= 0.8  && < 0.9
+                     , Gringotz
+                     , scotty        >= 0.9 && < 0.11
+                     , transformers  >= 0.3 && < 0.4
   default-language:    Haskell2010
 
 --test-suite new-template-test
