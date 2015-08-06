@@ -55,7 +55,7 @@ randMazeL i = do
   u <- randPoint p
   d <- randPoint p
   runTransforms l (transforms (Just u) (Just d))
-  where transforms u d = [ setTile   u     UStairs
+  where transforms u d = [ setTile   u     Player
                          , setTile   d     DStairs
                          , randTiles (i*2) Monster
                          , randTiles 20    Gold
