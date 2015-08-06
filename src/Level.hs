@@ -1,6 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Level where
 
 import Control.Monad
+import Data.Aeson
 
 import Patch
 import Tile
@@ -13,6 +15,12 @@ data Level = Level
 
 instance Show Level where
   show (Level l p) = "Level " ++ show l ++ "\n" ++ show p
+
+instance ToJSON Level where
+  toJSON (Level l p) = object [ "level" .= l
+                              , "patch" .= show p
+                              ]
+
 
 
 nextL :: Maybe Level -> IO Level
