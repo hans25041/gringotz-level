@@ -18,7 +18,7 @@ instance Show Tile where
   show Space   = "."
   show Hole    = " "
   show Gold    = "g"
-  show Monster = "m"
+  show Monster = "T"
   show Player  = "@"
   show DStairs = ">"
   show UStairs = "<"
