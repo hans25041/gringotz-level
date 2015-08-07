@@ -41,7 +41,7 @@ prevL (Level l p)
 
 randL :: Int -> Maybe Point -> Maybe Point -> IO Level
 randL i u d = runTransforms (emptyL i) transforms
-  where transforms = [ setTile   u Player
+  where transforms = [ setTile   u UStairs
                      , setTile   d DStairs
                      , randTiles i Monster
                      , randTiles i Gold
